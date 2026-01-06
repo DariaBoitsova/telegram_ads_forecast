@@ -99,15 +99,17 @@ pip install -r requirements.txt
 2. Запустить API:
 uvicorn src.api:app --host 0.0.0.0 --port 8000
 
+При первом запуске модель и статистика по каналам будут автоматически скачаны с Google Drive.
 3. Отправить запрос на /predict
 ## Структура репозитория
 
 telegram_ads_forecast/  
 ├── data/  
-├── models/  
+├── models/   # папка для хранения моделей; файлы скачиваются автоматически с Google Drive при старте API
 ├── src/  
-│   ├── train.py  
+│   ├── train.py  — скрипт для обучения модели. В репо он не сохраняет модели (CatBoost и stats) из-за большого размера файлов.
 │   ├── features.py  
 │   └── api.py  
 ├── requirements.txt  
+├── .gitignore  
 └── README.md  
