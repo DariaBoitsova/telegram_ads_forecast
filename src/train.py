@@ -66,8 +66,7 @@ model = CatBoostRegressor(
 
 model.fit(X_train, y_train, cat_features=["CHANNEL_NAME"])
 
-# 5. Save model
-model.save_model("models/catboost_views_model.cbm")
+
 
 # 6. Save channel stats
 channel_stats = {
@@ -86,6 +85,3 @@ for ch, g in df.groupby("CHANNEL_NAME"):
         "count": len(g),
         "mean_cpm": g["CPM"].mean()
     }
-
-with open("models/channel_stats.pkl", "wb") as f:
-    pickle.dump(channel_stats, f)
