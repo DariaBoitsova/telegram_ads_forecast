@@ -4,3 +4,4 @@ catboost
 scikit-learn
 fastapi
 uvicorn
+requests
