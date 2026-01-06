@@ -102,12 +102,12 @@ uvicorn src.api:app --host 0.0.0.0 --port 8000
 3. Отправить запрос на /predict
 ## Структура репозитория
 
-telegram_ads_forecast/
-├── data/
-├── models/
-├── src/
-│   ├── train.py
-│   ├── features.py
-│   └── api.py
-├── requirements.txt
-└── README.md
+telegram_ads_forecast/  
+├── data/  
+├── models/  
+├── src/  
+│   ├── train.py  
+│   ├── features.py  
+│   └── api.py  
+├── requirements.txt  
+└── README.md  
