@@ -100,6 +100,7 @@ pip install -r requirements.txt
 uvicorn src.api:app --host 0.0.0.0 --port 8000
 
 При первом запуске модель и статистика по каналам будут автоматически скачаны с Google Drive.
+
 3. Отправить запрос на /predict
 ## Структура репозитория
 
