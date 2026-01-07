@@ -7,13 +7,17 @@ from catboost import CatBoostRegressor
 from src.features import build_features
 from fastapi.responses import StreamingResponse
 import io
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request, Form
 import pandas as pd
 from io import StringIO
 from fastapi import UploadFile, File
 import gdown
+import uuid
+
+TMP_DIR = "tmp"
+os.makedirs(TMP_DIR, exist_ok=True)
 
 templates = Jinja2Templates(directory="templates")
 
@@ -83,8 +87,10 @@ def predict_form(
         """
     )
 
-@app.post("/predict_csv")
-async def predict_csv(file: UploadFile = File(...)):
+
+
+@app.post("/predict_csv", response_class=HTMLResponse)
+async def predict_csv(request: Request, file: UploadFile = File(...)):
     content = await file.read()
     df = pd.read_csv(StringIO(content.decode("utf-8")))
 
@@ -103,15 +109,30 @@ async def predict_csv(file: UploadFile = File(...)):
 
     df["VIEWS"] = predictions
 
-    # --- создаём CSV в памяти ---
-    buffer = io.StringIO()
-    df.to_csv(buffer, index=False)
-    buffer.seek(0)
+    # --- сохраняем CSV ---
+    file_id = str(uuid.uuid4())
+    output_path = os.path.join(TMP_DIR, f"{file_id}.csv")
+    df.to_csv(output_path, index=False)
 
-    return StreamingResponse(
-        buffer,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": "attachment; filename=prediction_result.csv"
+    # --- preview таблица ---
+    preview_html = df.head(10).to_html(
+        classes="table table-striped",
+        index=False
+    )
+
+    return templates.TemplateResponse(
+        "csv_result.html",
+        {
+            "request": request,
+            "table": preview_html,
+            "download_id": file_id
         }
+    )
+@app.get("/download_csv/{file_id}")
+def download_csv(file_id: str):
+    path = os.path.join(TMP_DIR, f"{file_id}.csv")
+    return FileResponse(
+        path,
+        media_type="text/csv",
+        filename="prediction_result.csv"
     )
