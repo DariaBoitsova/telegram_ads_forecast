@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Telegram Ads Reach Forecast</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 720px;
+            margin: 40px auto;
+            line-height: 1.5;
+        }
+        h2 {
+            margin-bottom: 10px;
+        }
+        input, button {
+            width: 100%;
+            padding: 8px;
+            margin: 6px 0;
+        }
+        button {
+            background-color: #2d7ff9;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1f5fd1;
+        }
+        .block {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Telegram Ads Reach Forecast</h2>
+<p>Прогноз охвата рекламного объявления в Telegram</p>
+
+<div class="block">
+    <h3>Одиночный прогноз</h3>
+    <form action="/predict_form" method="post">
+        <input name="cpm" placeholder="CPM (например 350)" required>
+        <input name="channel" placeholder="Channel name" required>
+        <input name="date" placeholder="YYYY-MM-DD" required>
+        <button type="submit">Predict</button>
+    </form>
+</div>
+
+<div class="block">
+    <h3>Batch-прогноз (CSV)</h3>
+    <p>CSV формат: cpm, channel, date</p>
+    <form action="/predict_csv" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".csv" required>
+        <button type="submit">Upload CSV</button>
+    </form>
+</div>
+
+</body>
+</html>
