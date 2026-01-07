@@ -5,7 +5,8 @@ import pickle
 import numpy as np
 from catboost import CatBoostRegressor
 from src.features import build_features
-import requests
+from fastapi.responses import StreamingResponse
+import io
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request, Form
@@ -102,5 +103,15 @@ async def predict_csv(file: UploadFile = File(...)):
 
     df["VIEWS"] = predictions
 
-    return df.to_dict(orient="records")
+    # --- создаём CSV в памяти ---
+    buffer = io.StringIO()
+    df.to_csv(buffer, index=False)
+    buffer.seek(0)
 
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=prediction_result.csv"
+        }
+    )
