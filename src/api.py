@@ -52,32 +52,32 @@ with open(STATS_PATH, "rb") as f:
 
 # ----------- API -----------
 class PredictRequest(BaseModel):
-    cpm: float
-    channel: str
-    date: str
+    CPM: float
+    CHANNEL_NAME: str
+    DATE: str
 
 @app.post("/predict")
 def predict(req: PredictRequest):
-    X = build_features(req.cpm, req.channel, req.date, channel_stats)
+    X = build_features(req.CPM, req.CHANNEL_NAME, req.DATE, channel_stats)
     pred_log = model.predict(X)[0]
     pred = int(np.expm1(pred_log))
-    return {"predicted_views": max(pred, 0)}
+    return {"VIEWS": max(pred, 0)}
 
 @app.post("/predict_form", response_class=HTMLResponse)
 def predict_form(
     request: Request,
-    cpm: float = Form(...),
-    channel: str = Form(...),
-    date: str = Form(...)
+    CPM: float = Form(...),
+    CHANNEL_NAME: str = Form(...),
+    DATE: str = Form(...)
 ):
-    X = build_features(cpm, channel, date, channel_stats)
+    X = build_features(CPM, CHANNEL_NAME, DATE, channel_stats)
     pred_log = model.predict(X)[0]
     pred = int(np.expm1(pred_log))
 
     return HTMLResponse(
         f"""
         <h2>Prediction result</h2>
-        <p><b>Predicted views:</b> {max(pred, 0)}</p>
+        <p><b>VIEWS:</b> {max(pred, 0)}</p>
         <a href="/">Back</a>
         """
     )
@@ -91,16 +91,16 @@ async def predict_csv(file: UploadFile = File(...)):
 
     for _, row in df.iterrows():
         X = build_features(
-            cpm=row["cpm"],
-            channel=row["channel"],
-            date=row["date"],
+            CPM=row["CPM"],
+            CHANNEL_NAME=row["CHANNEL_NAME"],
+            DATE=row["DATE"],
             channel_stats=channel_stats
         )
         pred_log = model.predict(X)[0]
         pred = int(np.expm1(pred_log))
         predictions.append(max(pred, 0))
 
-    df["predicted_views"] = predictions
+    df["VIEWS"] = predictions
 
     return df.to_dict(orient="records")
 
