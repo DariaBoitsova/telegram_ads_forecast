@@ -6,8 +6,21 @@ import numpy as np
 from catboost import CatBoostRegressor
 from src.features import build_features
 import requests
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request, Form
+import pandas as pd
+from io import StringIO
+from fastapi import UploadFile, File
+
+
+templates = Jinja2Templates(directory="templates")
 
 app = FastAPI(title="Telegram Ads Reach Forecast")
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
 
 # ----------- Google Drive helper -----------
 def download_from_gdrive(file_id, dest_path):
@@ -63,3 +76,45 @@ def predict(req: PredictRequest):
     pred_log = model.predict(X)[0]
     pred = int(np.expm1(pred_log))
     return {"predicted_views": max(pred, 0)}
+
+@app.post("/predict_form", response_class=HTMLResponse)
+def predict_form(
+    request: Request,
+    cpm: float = Form(...),
+    channel: str = Form(...),
+    date: str = Form(...)
+):
+    X = build_features(cpm, channel, date, channel_stats)
+    pred_log = model.predict(X)[0]
+    pred = int(np.expm1(pred_log))
+
+    return HTMLResponse(
+        f"""
+        <h2>Prediction result</h2>
+        <p><b>Predicted views:</b> {max(pred, 0)}</p>
+        <a href="/">Back</a>
+        """
+    )
+
+@app.post("/predict_csv")
+async def predict_csv(file: UploadFile = File(...)):
+    content = await file.read()
+    df = pd.read_csv(StringIO(content.decode("utf-8")))
+
+    predictions = []
+
+    for _, row in df.iterrows():
+        X = build_features(
+            cpm=row["cpm"],
+            channel=row["channel"],
+            date=row["date"],
+            channel_stats=channel_stats
+        )
+        pred_log = model.predict(X)[0]
+        pred = int(np.expm1(pred_log))
+        predictions.append(max(pred, 0))
+
+    df["predicted_views"] = predictions
+
+    return df.to_dict(orient="records")
+
