@@ -120,7 +120,7 @@ async def predict_csv(request: Request, file: UploadFile = File(...)):
         pred_log = model.predict(X)[0]
         raw_pred = np.expm1(pred_log)
         pred = int(CALIBRATION_ALPHA * raw_pred)
-        stats = channel_stats.get(CHANNEL_NAME, channel_stats["__global__"])
+        stats = channel_stats.get(df["CHANNEL_NAME"], channel_stats["__global__"])
         cap = MAX_VIEWS_MULTIPLIER * stats["mean"]
 
         pred = min(pred, int(cap))
