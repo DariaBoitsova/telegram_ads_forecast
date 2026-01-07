@@ -40,16 +40,16 @@
 <div class="block">
     <h3>Одиночный прогноз</h3>
     <form action="/predict_form" method="post">
-        <input name="cpm" placeholder="CPM (например 350)" required>
-        <input name="channel" placeholder="Channel name" required>
-        <input name="date" placeholder="YYYY-MM-DD" required>
+        <input name="CPM" placeholder="CPM (например 350)" required>
+        <input name="CHANNEL_NAME" placeholder="Channel name" required>
+        <input name="DATE" placeholder="YYYY-MM-DD" required>
         <button type="submit">Predict</button>
     </form>
 </div>
 
 <div class="block">
     <h3>Batch-прогноз (CSV)</h3>
-    <p>CSV формат: cpm, channel, date</p>
+    <p>CSV формат: CPM, CHANNEL_NAME, DATE</p>
     <form action="/predict_csv" method="post" enctype="multipart/form-data">
         <input type="file" name="file" accept=".csv" required>
         <button type="submit">Upload CSV</button>
