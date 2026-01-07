@@ -111,6 +111,12 @@ async def predict_csv(request: Request, file: UploadFile = File(...)):
     predictions = []
 
     for _, row in df.iterrows():
+        CHANNEL_NAME = row["CHANNEL_NAME"]
+
+        stats = channel_stats.get(
+            CHANNEL_NAME,
+            channel_stats["__global__"]
+        )
         X = build_features(
             CPM=row["CPM"],
             CHANNEL_NAME=row["CHANNEL_NAME"],
