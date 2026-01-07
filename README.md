@@ -2,13 +2,23 @@
 
 ## Описание проекта
 
-Проект представляет собой ML-сервис для прогнозирования охвата (VIEWS) рекламных объявлений в Telegram на основе:
+Telegram Ads Reach Forecast — это ML-сервис для прогнозирования охвата (`VIEWS`) рекламных объявлений в Telegram на основе исторических данных.
 
-* CPM (стоимость за 1000 показов)
-* канала размещения (CHANNEL_NAME)
-* даты размещения (DATE)
+Сервис предназначен для data-driven медиапланирования и позволяет заранее оценить потенциальный охват рекламы **до запуска кампании**.
 
-Решение предназначено для data-driven медиапланирования и позволяет заранее оценивать эффективность рекламных кампаний.
+---
+
+## Входные параметры прогноза
+
+Во всех сценариях (API, форма, CSV) используются **одинаковые названия полей**, совпадающие с train dataset:
+
+* `CPM` — стоимость за 1000 показов
+* `CHANNEL_NAME` — Telegram-канал размещения
+* `DATE` — дата размещения объявления (YYYY-MM-DD)
+
+Целевая переменная:
+
+* `VIEWS` — прогнозируемый охват
 
 ---
 
@@ -17,14 +27,17 @@
 ```
 telegram_ads_forecast/
 ├── data/
-│   └── data_train.csv        # Исторические данные (train dataset)
+│   └── data_train.csv        # Исторические данные для обучения
 ├── models/                   # НЕ хранится в Git (скачивается при старте)
+│   ├── catboost_views_model.cbm
+│   └── channel_stats.pkl
 ├── src/
-│   ├── api.py                # FastAPI приложение (API + web)
-│   ├── features.py           # Feature engineering для inference
+│   ├── api.py                # FastAPI: API + Web UI
+│   ├── features.py           # Feature engineering (train == inference)
 │   └── train.py              # Обучение модели
 ├── templates/
-│   └── index.html            # Веб-страница (форма + CSV upload)
+│   ├── index.html            # Главная страница (форма + CSV upload)
+│   └── csv_result.html       # Preview результатов CSV
 ├── requirements.txt
 ├── README.md
 └── .gitignore
@@ -36,18 +49,19 @@ telegram_ads_forecast/
 
 ### Train dataset
 
-Файл `data/data_train.csv` хранится в репозитории **намеренно**:
+Файл `data/data_train.csv` **намеренно хранится в репозитории**:
 
-* для воспроизводимости обучения
-* для демонстрации EDA и feature engineering
+* обеспечивает воспроизводимость обучения
+* позволяет проверить feature engineering
+* используется для EDA
 
-Используемые колонки:
+Основные колонки:
 
-* `CPM` — стоимость за 1000 показов
-* `CHANNEL_NAME` — Telegram-канал размещения
-* `DATE` — дата размещения
-* `VIEWS` — целевая переменная (охват)
-* `CLICKS`, `ACTIONS` — вспомогательные признаки
+* `CPM`
+* `CHANNEL_NAME`
+* `DATE`
+* `VIEWS`
+* `CLICKS`, `ACTIONS` (вспомогательные)
 
 ---
 
@@ -56,12 +70,12 @@ telegram_ads_forecast/
 Используется `CatBoostRegressor`:
 
 * поддержка категориальных признаков (`CHANNEL_NAME`)
-* устойчивая работа с нелинейными зависимостями CPM → VIEWS
-* обучение в лог-пространстве (`log1p(VIEWS)`)
+* устойчивость к нелинейной зависимости CPM → VIEWS
+* обучение в лог-пространстве: `log1p(VIEWS)`
 
 ### Feature engineering
 
-Основные признаки:
+Признаки формируются в `src/features.py` и **полностью совпадают** между обучением и инференсом:
 
 * `CPM`, `cpm_log`, `cpm_sq`
 * временные: `dayofweek`, `week`, `month`, `is_weekend`
@@ -73,15 +87,26 @@ telegram_ads_forecast/
 * `cpm_vs_channel_mean`
 * `CHANNEL_NAME` (категориальный)
 
-Логика генерации признаков вынесена в `src/features.py` и полностью совпадает между train и inference.
+---
+
+## API и Web-интерфейс
+
+### Главная страница
+
+`GET /`
+
+Веб-интерфейс предоставляет:
+
+* форму для одиночного прогноза
+* загрузку CSV-файла для batch-прогнозирования
 
 ---
 
-## API
+### Одиночный прогноз (JSON API)
 
-### Single prediction (JSON)
+`POST /predict`
 
-**POST** `/predict`
+Пример запроса:
 
 ```json
 {
@@ -99,21 +124,23 @@ telegram_ads_forecast/
 }
 ```
 
----
-
-### Single prediction (HTML form)
-
-**POST** `/predict_form`
-
-Используется веб-форма на главной странице.
+Данный endpoint предназначен для интеграций и программного использования.
 
 ---
 
-### Batch prediction (CSV upload)
+### Одиночный прогноз (HTML форма)
 
-**POST** `/predict_csv`
+`POST /predict_form`
 
-#### Входной CSV (пример):
+Используется веб-форма на главной странице. Возвращает HTML-страницу с результатом прогноза.
+
+---
+
+### Batch-прогнозирование (CSV)
+
+`POST /predict_csv`
+
+#### Входной CSV (пример)
 
 ```csv
 CPM,CHANNEL_NAME,DATE
@@ -121,10 +148,13 @@ CPM,CHANNEL_NAME,DATE
 95.0,marketing_tips,2024-12-03
 ```
 
-#### Результат:
+#### Результат
 
-* автоматически скачивается файл `prediction_result.csv`
-* добавляется колонка `VIEWS`
+* отображается preview первых строк результата
+* автоматически добавляется колонка `VIEWS`
+* доступна кнопка скачивания полного CSV-файла
+
+Пример результата:
 
 ```csv
 CPM,CHANNEL_NAME,DATE,VIEWS
@@ -134,16 +164,16 @@ CPM,CHANNEL_NAME,DATE,VIEWS
 
 ---
 
-## Модели и Google Drive
+## Хранение моделей
 
 Файлы моделей **не хранятся в GitHub** из-за ограничений по размеру.
 
-При старте приложения автоматически:
+При старте приложения автоматически скачиваются:
 
-* скачивается `catboost_views_model.cbm`
-* скачивается `channel_stats.pkl`
+* `catboost_views_model.cbm`
+* `channel_stats.pkl`
 
-Источник — Google Drive (через `gdown`).
+Источник — Google Drive (через библиотеку `gdown`).
 
 ---
 
@@ -151,14 +181,14 @@ CPM,CHANNEL_NAME,DATE,VIEWS
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  # Windows: venv\\Scripts\\activate
 
 pip install -r requirements.txt
 
 uvicorn src.api:app --host 0.0.0.0 --port 8000
 ```
 
-Открыть в браузере:
+После запуска приложение доступно по адресу:
 
 ```
 http://localhost:8000
@@ -168,21 +198,34 @@ http://localhost:8000
 
 ## Деплой
 
-Проект разворачивается на **Render** как Web Service:
+Проект разворачивается как Web Service (например, на Render):
 
-* стартовая команда: `uvicorn src.api:app --host 0.0.0.0 --port 10000`
-* Python environment
-* публичный доступ к API
+* Start command:
+
+```bash
+uvicorn src.api:app --host 0.0.0.0 --port 10000
+```
+
+* Тип сервиса: Python Web Service
+* Публичный доступ к API и Web UI
+
+---
+
+## Ограничения и допущения
+
+* Для новых каналов используется глобальная статистика (cold start)
+* Качество прогноза зависит от объёма и качества исторических данных
+* Модель прогнозирует ожидаемый охват, а не гарантированный результат
 
 ---
 
 ## Бизнес-ценность
 
-Решение позволяет:
+Сервис позволяет:
 
 * прогнозировать охват до запуска рекламы
-* сравнивать каналы при одинаковом CPM
-* оптимизировать рекламный бюджет
-* использовать модель как сервис в медиапланировании
+* сравнивать Telegram-каналы при одинаковом CPM
+* оптимизировать распределение рекламного бюджета
+* использовать модель как готовый API-сервис для медиапланирования
 
 Проект реализован как полноценный ML-сервис, готовый к использованию в production-сценариях.
