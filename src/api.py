@@ -55,6 +55,8 @@ model.load_model(MODEL_PATH)
 with open(STATS_PATH, "rb") as f:
     channel_stats = pickle.load(f)
 
+CALIBRATION_ALPHA = 0.9
+MAX_VIEWS_MULTIPLIER = 3.0
 # ----------- API -----------
 class PredictRequest(BaseModel):
     CPM: float
@@ -65,7 +67,14 @@ class PredictRequest(BaseModel):
 def predict(req: PredictRequest):
     X = build_features(req.CPM, req.CHANNEL_NAME, req.DATE, channel_stats)
     pred_log = model.predict(X)[0]
-    pred = int(np.expm1(pred_log))
+    raw_pred = np.expm1(pred_log)
+    pred = int(CALIBRATION_ALPHA * raw_pred)
+    stats = channel_stats.get(CHANNEL_NAME, channel_stats["__global__"])
+    cap = MAX_VIEWS_MULTIPLIER * stats["mean"]
+
+    pred = min(pred, int(cap))
+    pred = max(pred, 0)
+
     return {"VIEWS": max(pred, 0)}
 
 @app.post("/predict_form", response_class=HTMLResponse)
@@ -77,8 +86,13 @@ def predict_form(
 ):
     X = build_features(CPM, CHANNEL_NAME, DATE, channel_stats)
     pred_log = model.predict(X)[0]
-    pred = int(np.expm1(pred_log))
+    raw_pred = np.expm1(pred_log)
+    pred = int(CALIBRATION_ALPHA * raw_pred)
+    stats = channel_stats.get(CHANNEL_NAME, channel_stats["__global__"])
+    cap = MAX_VIEWS_MULTIPLIER * stats["mean"]
 
+    pred = min(pred, int(cap))
+    pred = max(pred, 0)
     return HTMLResponse(
         f"""
         <h2>Prediction result</h2>
@@ -104,7 +118,13 @@ async def predict_csv(request: Request, file: UploadFile = File(...)):
             channel_stats=channel_stats
         )
         pred_log = model.predict(X)[0]
-        pred = int(np.expm1(pred_log))
+        raw_pred = np.expm1(pred_log)
+        pred = int(CALIBRATION_ALPHA * raw_pred)
+        stats = channel_stats.get(CHANNEL_NAME, channel_stats["__global__"])
+        cap = MAX_VIEWS_MULTIPLIER * stats["mean"]
+
+        pred = min(pred, int(cap))
+        pred = max(pred, 0)
         predictions.append(max(pred, 0))
 
     df["VIEWS"] = predictions
