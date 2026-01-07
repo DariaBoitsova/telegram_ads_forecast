@@ -27,24 +27,10 @@ def download_from_gdrive(file_id, dest_path):
     if os.path.exists(dest_path):
         return
 
-    URL = "https://drive.google.com/uc?export=download"
-    session = requests.Session()
-    response = session.get(URL, params={'id': file_id}, stream=True)
-    token = None
-
-    for key, value in response.cookies.items():
-        if key.startswith('download_warning'):
-            token = value
-
-    if token:
-        params = {'id': file_id, 'confirm': token}
-        response = session.get(URL, params=params, stream=True)
-
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
-    with open(dest_path, "wb") as f:
-        for chunk in response.iter_content(32768):
-            f.write(chunk)
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, dest_path, quiet=False)
 
 # ----------- ID файлов на Google Drive -----------
 MODEL_ID = "16D7SmfEy_UfParBRvpAwBcfFW7MFd1CH"   # замените на свой ID
