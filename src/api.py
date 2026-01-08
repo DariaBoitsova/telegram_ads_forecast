@@ -69,7 +69,7 @@ def predict(req: PredictRequest):
     pred_log = model.predict(X)[0]
     raw_pred = np.expm1(pred_log)
     pred = int(CALIBRATION_ALPHA * raw_pred)
-    stats = channel_stats.get(CHANNEL_NAME, channel_stats["__global__"])
+    stats = channel_stats.get(req.CHANNEL_NAME, channel_stats["__global__"])
     cap = MAX_VIEWS_MULTIPLIER * stats["mean"]
 
     pred = min(pred, int(cap))
@@ -136,12 +136,32 @@ async def predict_csv(request: Request, file: UploadFile = File(...)):
             CHANNEL_NAME,
             channel_stats["__global__"]
         )
-        X = build_features(
-            CPM=row["CPM"],
-            CHANNEL_NAME=row["CHANNEL_NAME"],
-            DATE=row["DATE"],
-            channel_stats=channel_stats
-        )
+        try:
+            cpm = float(row["CPM"])
+            channel = str(row["CHANNEL_NAME"])
+            date = row["DATE"]
+
+            X = build_features(
+                CPM=cpm,
+                CHANNEL_NAME=channel,
+                DATE=date,
+                channel_stats=channel_stats
+            )
+
+            pred_log = model.predict(X)[0]
+            raw_pred = np.expm1(pred_log)
+            pred = int(CALIBRATION_ALPHA * raw_pred)
+
+            stats = channel_stats.get(channel, channel_stats["__global__"])
+            cap = MAX_VIEWS_MULTIPLIER * stats["mean"]
+
+            pred = min(pred, int(cap))
+            pred = max(pred, 0)
+            predictions.append(pred)
+
+        except Exception:
+            predictions.append(None)
+
         pred_log = model.predict(X)[0]
         raw_pred = np.expm1(pred_log)
         pred = int(CALIBRATION_ALPHA * raw_pred)
