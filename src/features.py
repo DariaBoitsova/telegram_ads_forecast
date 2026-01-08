@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 def build_features(CPM, CHANNEL_NAME, DATE, channel_stats):
+    CPM = float(CPM)
     DATE = pd.to_datetime(DATE)
     stats = channel_stats.get(CHANNEL_NAME, channel_stats["__global__"])
 
