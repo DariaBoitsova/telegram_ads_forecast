@@ -162,15 +162,6 @@ async def predict_csv(request: Request, file: UploadFile = File(...)):
         except Exception:
             predictions.append(None)
 
-        pred_log = model.predict(X)[0]
-        raw_pred = np.expm1(pred_log)
-        pred = int(CALIBRATION_ALPHA * raw_pred)
-        cap = MAX_VIEWS_MULTIPLIER * stats["mean"]
-
-        pred = min(pred, int(cap))
-        pred = max(pred, 0)
-        predictions.append(max(pred, 0))
-
     df["VIEWS"] = predictions
 
     # --- сохраняем CSV ---
