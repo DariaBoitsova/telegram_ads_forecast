@@ -107,7 +107,26 @@ def predict_form(
 async def predict_csv(request: Request, file: UploadFile = File(...)):
     content = await file.read()
     df = pd.read_csv(StringIO(content.decode("utf-8")))
+    df.columns = (
+        df.columns
+          .str.strip()
+          .str.upper()
+    )
+    rename_map = {
+        "CHANNEL": "CHANNEL_NAME",
+        "CHANNELNAME": "CHANNEL_NAME"
+    }
 
+    df = df.rename(columns=rename_map)
+    required_cols = {"CPM", "CHANNEL_NAME", "DATE"}
+    missing = required_cols - set(df.columns)
+
+    if missing:
+        return {
+            "error": f"Missing required columns: {', '.join(missing)}",
+            "expected_columns": list(required_cols)
+        }
+    
     predictions = []
 
     for _, row in df.iterrows():
